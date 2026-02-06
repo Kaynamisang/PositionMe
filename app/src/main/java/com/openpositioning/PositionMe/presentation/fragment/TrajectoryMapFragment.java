@@ -29,7 +29,9 @@ import com.google.android.gms.maps.model.*;
 import java.util.ArrayList;
 import java.util.List;
 
-
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 /**
  * A fragment responsible for displaying a trajectory map using Google Maps.
  * <p>
@@ -82,9 +84,13 @@ public class TrajectoryMapFragment extends Fragment {
     private Polygon buildingPolygon;
 
 
+    private final List<Marker> testPointMarkers = new ArrayList<>();
+
     public TrajectoryMapFragment() {
         // Required empty public constructor
     }
+
+
 
     @Nullable
     @Override
@@ -389,6 +395,21 @@ public class TrajectoryMapFragment extends Fragment {
     }
 
 
+    public void addTestPointMarker(@NonNull LatLng loc, int index, long timestampMs) {
+        if (gMap == null) return;
+
+        String timeStr = new SimpleDateFormat("HH:mm:ss", Locale.UK)
+                .format(new Date(timestampMs));
+
+        Marker m = gMap.addMarker(new MarkerOptions()
+                .position(loc)
+                .title("Test Point " + index)
+                .snippet("Time: " + timeStr));
+
+        if (m != null) testPointMarkers.add(m);
+    }
+
+
     /**
      * Remove GNSS marker if user toggles it off
      */
@@ -442,6 +463,13 @@ public class TrajectoryMapFragment extends Fragment {
                     .color(Color.BLUE)
                     .width(5f)
                     .add());
+        }
+
+        if (!testPointMarkers.isEmpty()) {
+            for (Marker m : testPointMarkers) {
+                if (m != null) m.remove();
+            }
+            testPointMarkers.clear();
         }
     }
 

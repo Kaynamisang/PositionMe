@@ -33,6 +33,15 @@ import com.openpositioning.PositionMe.utils.UtilFunctions;
 import com.google.android.gms.maps.model.LatLng;
 
 
+import android.util.Log;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import android.widget.Toast;
 /**
  * Fragment responsible for managing the recording process of trajectory data.
  * <p>
@@ -79,6 +88,27 @@ public class RecordingFragment extends Fragment {
 
     // References to the child map fragment
     private TrajectoryMapFragment trajectoryMapFragment;
+
+
+    private FloatingActionButton addTestPointButton;
+
+    private int testPointCount = 0;
+
+    // Store data for later saving (timestamp + position)
+    private final List<TestPoint> testPoints = new ArrayList<>();
+
+    // Simple container for now
+    private static class TestPoint {
+        final int index;
+        final long timestampMs;
+        final LatLng location;
+
+        TestPoint(int index, long timestampMs, LatLng location) {
+            this.index = index;
+            this.timestampMs = timestampMs;
+            this.location = location;
+        }
+    }
 
     private final Runnable refreshDataTask = new Runnable() {
         @Override
@@ -140,6 +170,13 @@ public class RecordingFragment extends Fragment {
         recIcon = view.findViewById(R.id.redDot);
         timeRemaining = view.findViewById(R.id.timeRemainingBar);
 
+        addTestPointButton = view.findViewById(R.id.addTestPointButton);
+
+        if (addTestPointButton == null) {
+            Log.e("TestPoint", "addTestPointButton not found in layout");
+            return;
+        }
+
         // Hide or initialize default values
         gnssError.setVisibility(View.GONE);
         elevation.setText(getString(R.string.elevation, "0"));
@@ -179,6 +216,30 @@ public class RecordingFragment extends Fragment {
             });
 
             dialog.show(); // Finally, show the dialog
+        });
+
+        addTestPointButton.setOnClickListener(v -> {
+            if (trajectoryMapFragment == null) {
+                Log.w("TestPoint", "Map fragment not ready");
+                return;
+            }
+
+            LatLng loc = trajectoryMapFragment.getCurrentLocation();
+            if (loc == null) {
+                Toast.makeText(requireContext(), "No position yet — walk a little first", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            testPointCount++;
+            long t = System.currentTimeMillis();
+
+            // Save in memory (for later protobuf integration)
+            testPoints.add(new TestPoint(testPointCount, t, loc));
+
+            // Add marker to the map (we need a method in TrajectoryMapFragment for this)
+            trajectoryMapFragment.addTestPointMarker(loc, testPointCount, t);
+
+            Log.d("TestPoint", "Added point #" + testPointCount + " at " + loc + " time=" + t);
         });
 
         // The blinking effect for recIcon
